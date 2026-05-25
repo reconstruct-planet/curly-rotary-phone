@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ethan's Health Analysis</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">E</div>
+          <div>
+            <h1>Ethan's Health Analysis</h1>
+            <p>식단 · 운동 · 신체 리포트</p>
+          </div>
+        </div>
+
+        <nav class="date-panel" aria-label="날짜 선택">
+          <button class="icon-btn" id="prevDay" type="button" aria-label="이전 날짜">‹</button>
+          <input id="dateInput" type="date" />
+          <button class="icon-btn" id="nextDay" type="button" aria-label="다음 날짜">›</button>
+        </nav>
+
+        <section class="side-section">
+          <div class="side-title">
+            <h2>목표</h2>
+            <span id="goalHint">일일 기준</span>
+          </div>
+          <label>
+            <span>칼로리</span>
+            <input id="targetCalories" type="number" min="800" max="6000" step="50" />
+          </label>
+          <label>
+            <span>단백질 g</span>
+            <input id="targetProtein" type="number" min="20" max="300" step="5" />
+          </label>
+          <div class="two-col">
+            <label>
+              <span>탄수 g</span>
+              <input id="targetCarbs" type="number" min="50" max="700" step="5" />
+            </label>
+            <label>
+              <span>지방 g</span>
+              <input id="targetFat" type="number" min="10" max="250" step="5" />
+            </label>
+          </div>
+          <label>
+            <span>물 L</span>
+            <input id="targetWater" type="number" min="0.5" max="6" step="0.1" />
+          </label>
+        </section>
+
+        <section class="side-section">
+          <div class="side-title">
+            <h2>신체</h2>
+            <span id="profileHint">BMI 자동</span>
+          </div>
+          <div class="two-col">
+            <label>
+              <span>키 cm</span>
+              <input id="heightInput" type="number" min="80" max="230" step="0.1" />
+            </label>
+            <label>
+              <span>체중 kg</span>
+              <input id="weightInput" type="number" min="20" max="250" step="0.1" />
+            </label>
+          </div>
+          <label>
+            <span>목표 체중 kg</span>
+            <input id="goalWeightInput" type="number" min="20" max="250" step="0.1" />
+          </label>
+          <label>
+            <span>원하는 몸 형태</span>
+            <select id="bodyShapeInput">
+              <option value="balanced">균형형</option>
+              <option value="lean">슬림 탄탄형</option>
+              <option value="muscular">근육질</option>
+              <option value="athletic">운동선수형</option>
+              <option value="fatLoss">체지방 감량형</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="side-section">
+          <div class="side-title">
+            <h2>스캔·검색</h2>
+            <span id="barcodeStatus">대기</span>
+          </div>
+          <div class="barcode-row">
+            <input id="barcodeInput" type="text" inputmode="numeric" placeholder="바코드 번호" />
+            <button class="ghost-btn" id="barcodeBtn" type="button">조회</button>
+          </div>
+          <div class="quick-foods" id="quickFoods"></div>
+        </section>
+
+        <section class="side-section">
+          <div class="side-title">
+            <h2>즐겨찾기</h2>
+            <span id="favoriteCount">0개</span>
+          </div>
+          <div class="quick-foods" id="favoriteFoods"></div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="weekdayLabel"></p>
+            <h2 id="dayTitle">Ethan's Health Analysis</h2>
+          </div>
+          <div class="top-actions">
+            <button class="ghost-btn" id="exportBtn" type="button">내보내기</button>
+            <button class="danger-btn" id="clearDayBtn" type="button">오늘 삭제</button>
+          </div>
+        </header>
+
+        <section class="hero-band">
+          <div class="hero-score">
+            <div class="score-ring" id="scoreRing">
+              <strong id="dayScore">0</strong>
+              <span>점</span>
+            </div>
+            <div>
+              <h3 id="scoreTitle">기록을 시작하세요</h3>
+              <p id="scoreSummary">식단, 운동, 수분을 합쳐 하루 점수를 계산합니다.</p>
+            </div>
+          </div>
+          <div class="hero-brief" id="heroBrief"></div>
+        </section>
+
+        <section class="metric-grid" aria-label="주요 지표">
+          <article class="metric-card">
+            <span>남은 칼로리</span>
+            <strong id="remainingCalories">0</strong>
+            <div class="meter"><i id="calorieMeter"></i></div>
+            <small id="calorieStatus">목표 대비 0%</small>
+          </article>
+          <article class="metric-card">
+            <span>순섭취</span>
+            <strong id="netCalories">0</strong>
+            <div class="split-row">
+              <small id="intakeTotal">섭취 0</small>
+              <small id="exerciseOffset">운동 0</small>
+            </div>
+          </article>
+          <article class="metric-card">
+            <span>단백질</span>
+            <strong id="proteinTotal">0g</strong>
+            <div class="meter"><i id="proteinMeter"></i></div>
+            <small id="proteinStatus">목표 0g</small>
+          </article>
+          <article class="metric-card">
+            <span>수분</span>
+            <strong id="waterTotal">0.0L</strong>
+            <div class="stepper-row">
+              <button class="icon-btn" id="waterMinus" type="button" aria-label="물 감소">−</button>
+              <button class="icon-btn" id="waterPlus" type="button" aria-label="물 증가">+</button>
+            </div>
+          </article>
+          <article class="metric-card">
+            <span>BMI</span>
+            <strong id="bmiValue">-</strong>
+            <div class="bmi-track"><i id="bmiMarker"></i></div>
+            <small id="bmiStatus">신체 정보 필요</small>
+          </article>
+          <article class="metric-card">
+            <span>공복 흐름</span>
+            <strong id="fastingValue">0h</strong>
+            <div class="meter"><i id="fastingMeter"></i></div>
+            <small id="fastingStatus">설정 대기</small>
+          </article>
+        </section>
+
+        <nav class="tabbar" aria-label="기록 탭">
+          <button class="active" type="button" data-tab="diet">식단</button>
+          <button type="button" data-tab="exercise">운동</button>
+          <button type="button" data-tab="medication">약 기록</button>
+          <button type="button" data-tab="plan">플래너</button>
+          <button type="button" data-tab="report">리포트</button>
+        </nav>
+
+        <section class="tab-panel" id="dietTab">
+          <section class="next-meal-panel">
+            <div class="next-meal-copy">
+              <span>Real-time Meal Coach</span>
+              <h2 id="nextMealTitle">다음 식사 추천 준비 중</h2>
+              <p id="nextMealReason">오늘 먹은 식단을 바탕으로 다음 끼니 조합을 제안합니다.</p>
+            </div>
+            <div class="next-meal-options" id="nextMealOptions"></div>
+          </section>
+
+          <section class="main-grid">
+            <form class="entry-form" id="mealForm">
+              <div class="form-head">
+                <div>
+                  <h2>식단 입력</h2>
+                  <p>음식명 또는 바코드로 자동 입력하고 직접 보정할 수 있습니다.</p>
+                </div>
+                <div class="form-actions">
+                  <button class="ghost-btn" id="lookupFoodBtn" type="button">자동검색</button>
+                  <button class="ghost-btn" id="favoriteBtn" type="button">즐겨찾기</button>
+                  <button class="primary-btn" type="submit">저장</button>
+                </div>
+              </div>
+
+              <div class="field-row">
+                <label>
+                  <span>식사</span>
+                  <select id="mealType">
+                    <option value="아침">아침</option>
+                    <option value="점심">점심</option>
+                    <option value="저녁">저녁</option>
+                    <option value="간식">간식</option>
+                  </select>
+                </label>
+                <label>
+                  <span>음식</span>
+                  <input id="foodName" type="text" list="foodOptions" autocomplete="off" placeholder="예: 통밀빵, 닭가슴살, banana" required />
+                  <datalist id="foodOptions"></datalist>
+                </label>
+                <label>
+                  <span>분량 배수</span>
+                  <input id="amount" type="number" min="0.1" max="20" step="0.1" value="1" />
+                </label>
+              </div>
+
+              <div class="lookup-row">
+                <span id="baseUnitLabel">1인분 기준</span>
+                <span id="lookupStatus">2글자 이상 입력하면 자동 입력</span>
+              </div>
+              <div id="foodSuggestions" class="suggestion-list"></div>
+
+              <div class="field-row nutrition-row">
+                <label>
+                  <span>kcal</span>
+                  <input id="calories" type="number" min="0" step="1" />
+                </label>
+                <label>
+                  <span>탄수 g</span>
+                  <input id="carbs" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span>단백질 g</span>
+                  <input id="protein" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span>지방 g</span>
+                  <input id="fat" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span>식이섬유 g</span>
+                  <input id="fiber" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span>당류 g</span>
+                  <input id="sugar" type="number" min="0" step="0.1" />
+                </label>
+                <label>
+                  <span>나트륨 mg</span>
+                  <input id="sodium" type="number" min="0" step="1" />
+                </label>
+              </div>
+
+              <div class="photo-note-row">
+                <label class="photo-box" for="photoInput">
+                  <input id="photoInput" type="file" accept="image/*" />
+                  <img id="photoPreview" alt="" />
+                  <span id="photoPlaceholder">사진 자동 준비</span>
+                  <small id="photoSource">자동</small>
+                </label>
+                <label class="note-field">
+                  <span>메모</span>
+                  <textarea id="note" rows="4" placeholder="외식, 컨디션, 조리법 등을 적어두세요."></textarea>
+                  <div class="pairing-box">
+                    <span>추천 조합/레시피</span>
+                    <div id="foodPairingSuggestions" class="suggestion-list compact"></div>
+                  </div>
+                </label>
+              </div>
+            </form>
+
+            <section class="analysis-panel">
+              <div class="panel-head">
+                <h2>스마트 분석</h2>
+                <span id="scoreBadge">0점</span>
+              </div>
+              <div id="analysisList" class="analysis-list"></div>
+            </section>
+          </section>
+
+          <section class="timeline-section">
+            <div class="section-head">
+              <h2>하루 식단</h2>
+              <div class="mini-stats" id="mealTargetSummary">식사별 목표 계산 중</div>
+            </div>
+            <div id="mealTimeline" class="meal-timeline"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="medicationTab" hidden>
+          <section class="main-grid">
+            <form class="entry-form" id="medicationForm">
+              <div class="form-head">
+                <div>
+                  <h2>약 기록</h2>
+                  <p>영양제, 처방약, 복용 시간과 식사 관계를 같은 날짜에 기록합니다.</p>
+                </div>
+                <button class="primary-btn" type="submit">저장</button>
+              </div>
+
+              <div class="field-row medication-row">
+                <label>
+                  <span>약/영양제 이름</span>
+                  <input id="medName" type="text" autocomplete="off" placeholder="예: 피라세탐, 오메가3, 이부프로펜" required />
+                </label>
+                <label>
+                  <span>용량</span>
+                  <input id="medDose" type="text" autocomplete="off" placeholder="예: 1정, 1000mg" />
+                </label>
+                <label>
+                  <span>복용 시간</span>
+                  <input id="medTime" type="time" />
+                </label>
+                <label>
+                  <span>상태</span>
+                  <select id="medStatus">
+                    <option value="복용함">복용함</option>
+                    <option value="예정">예정</option>
+                    <option value="건너뜀">건너뜀</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="field-row medication-row">
+                <label>
+                  <span>식사 관계</span>
+                  <select id="medWithMeal">
+                    <option value="상관 없음">상관 없음</option>
+                    <option value="식전">식전</option>
+                    <option value="식후">식후</option>
+                    <option value="공복">공복</option>
+                  </select>
+                </label>
+                <label class="wide-field">
+                  <span>메모</span>
+                  <input id="medNote" type="text" autocomplete="off" placeholder="주의사항이나 컨디션을 적어두세요." />
+                </label>
+              </div>
+              <div class="lookup-row med-lookup-row">
+                <div class="lookup-copy">
+                  <span>약 정보 검색</span>
+                  <span id="medLookupStatus">한국어/영문 이름을 입력하면 성분/효과/주의사항을 검색합니다.</span>
+                </div>
+                <div class="language-toggle" role="group" aria-label="약 정보 언어">
+                  <button type="button" class="language-btn is-active" data-med-language="ko" aria-pressed="true">한국어</button>
+                  <button type="button" class="language-btn" data-med-language="en" aria-pressed="false">영문</button>
+                </div>
+              </div>
+              <div id="medLookupPanel" class="medication-lookup"></div>
+            </form>
+
+            <section class="analysis-panel">
+              <div class="panel-head">
+                <h2>복용 요약</h2>
+                <span id="medicationBadge">0개</span>
+              </div>
+              <div id="medicationSummary" class="analysis-list"></div>
+            </section>
+          </section>
+
+          <section class="timeline-section">
+            <div class="section-head">
+              <h2>오늘의 약</h2>
+              <div class="mini-stats" id="medicationMiniStats">복용 기록 없음</div>
+            </div>
+            <div id="medicationTimeline" class="meal-timeline"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="exerciseTab" hidden>
+          <section class="next-meal-panel exercise-coach-panel">
+            <div class="next-meal-copy">
+              <span>Training Coach</span>
+              <h2 id="exerciseCoachTitle">운동 추천 준비 중</h2>
+              <p id="exerciseCoachReason">BMI, 목표 체형, 최근 운동량, 오늘 섭취 상태를 보고 운동을 추천합니다.</p>
+            </div>
+            <div class="next-meal-options" id="exerciseCoachOptions"></div>
+          </section>
+          <section class="main-grid">
+            <form class="entry-form" id="exerciseForm">
+              <div class="form-head">
+                <div>
+                  <h2>운동 입력</h2>
+                  <p>체중과 MET 기준으로 소모 칼로리를 계산합니다.</p>
+                </div>
+                <button class="primary-btn" id="saveExerciseBtn" type="submit">저장</button>
+              </div>
+
+              <div class="field-row exercise-row">
+                <label>
+                  <span>운동</span>
+                  <input id="exerciseName" type="text" list="exerciseOptions" autocomplete="off" required />
+                  <datalist id="exerciseOptions"></datalist>
+                </label>
+                <label>
+                  <span>시간 분</span>
+                  <input id="exerciseMinutes" type="number" min="1" max="600" step="5" value="30" />
+                </label>
+                <label>
+                  <span>강도</span>
+                  <select id="exerciseIntensity">
+                    <option value="0.85">가볍게</option>
+                    <option value="1" selected>보통</option>
+                    <option value="1.18">강하게</option>
+                  </select>
+                </label>
+                <label>
+                  <span>소모 kcal</span>
+                  <input id="exerciseCalories" type="number" min="0" step="1" />
+                </label>
+              </div>
+
+              <div class="lookup-row">
+                <span id="exerciseEstimateLabel">MET 자동 계산</span>
+                <span id="exerciseStatus">운동 선택 대기</span>
+              </div>
+
+              <div class="quick-foods" id="quickExercises"></div>
+
+              <label>
+                <span>메모</span>
+                <textarea id="exerciseNote" rows="4"></textarea>
+              </label>
+            </form>
+
+            <form class="entry-form" id="checkinForm">
+              <div class="form-head">
+                <div>
+                  <h2>체크인</h2>
+                  <p>상위 앱처럼 식단 밖의 신호도 같이 봅니다.</p>
+                </div>
+                <button class="primary-btn" type="submit">저장</button>
+              </div>
+              <div class="field-row checkin-row">
+                <label>
+                  <span>걸음 수</span>
+                  <input id="stepsInput" type="number" min="0" max="80000" step="100" />
+                </label>
+                <label>
+                  <span>수면 h</span>
+                  <input id="sleepInput" type="number" min="0" max="18" step="0.1" />
+                </label>
+                <label>
+                  <span>허리 cm</span>
+                  <input id="waistInput" type="number" min="30" max="200" step="0.1" />
+                </label>
+                <label>
+                  <span>컨디션</span>
+                  <select id="moodInput">
+                    <option value="">선택 안 함</option>
+                    <option value="좋음">좋음</option>
+                    <option value="보통">보통</option>
+                    <option value="피곤">피곤</option>
+                    <option value="스트레스">스트레스</option>
+                  </select>
+                </label>
+              </div>
+              <div class="analysis-list" id="checkinSummary"></div>
+            </form>
+          </section>
+
+          <section class="timeline-section">
+            <div class="section-head">
+              <h2>하루 운동</h2>
+              <div class="mini-stats">
+                <span id="exerciseMinutesTotal">0분</span>
+                <span id="exerciseBurnTotal">0kcal</span>
+              </div>
+            </div>
+            <div id="exerciseTimeline" class="meal-timeline"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="planTab" hidden>
+          <section class="main-grid">
+            <form class="entry-form" id="plannerForm">
+              <div class="form-head">
+                <div>
+                  <h2>목표 플랜</h2>
+                  <p>목표 체중과 몸 형태에 맞춰 칼로리와 영양성분을 추천합니다.</p>
+                </div>
+                <div class="form-actions">
+                  <button class="ghost-btn" id="generateTargetBtn" type="button">목표 추천</button>
+                  <button class="primary-btn" type="submit">저장</button>
+                </div>
+              </div>
+              <div id="targetPlanPreview" class="target-plan"></div>
+              <div class="field-row plan-row">
+                <label>
+                  <span>아침 %</span>
+                  <input id="breakfastTarget" type="number" min="0" max="100" step="1" />
+                </label>
+                <label>
+                  <span>점심 %</span>
+                  <input id="lunchTarget" type="number" min="0" max="100" step="1" />
+                </label>
+                <label>
+                  <span>저녁 %</span>
+                  <input id="dinnerTarget" type="number" min="0" max="100" step="1" />
+                </label>
+                <label>
+                  <span>간식 %</span>
+                  <input id="snackTarget" type="number" min="0" max="100" step="1" />
+                </label>
+              </div>
+              <div class="field-row fasting-row">
+                <label>
+                  <span>공복 시작</span>
+                  <input id="fastingStart" type="time" />
+                </label>
+                <label>
+                  <span>목표 공복 h</span>
+                  <input id="fastingHours" type="number" min="8" max="24" step="1" />
+                </label>
+              </div>
+            </form>
+
+            <section class="analysis-panel">
+              <div class="panel-head">
+                <h2>다음 액션</h2>
+                <span id="planBadge">추천</span>
+              </div>
+              <div id="recommendationList" class="analysis-list"></div>
+            </section>
+          </section>
+
+          <section class="timeline-section">
+            <div class="section-head">
+              <h2>최근 음식</h2>
+              <div class="mini-stats">한 번 눌러 다시 입력</div>
+            </div>
+            <div id="recentFoods" class="quick-foods wide"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="reportTab" hidden>
+          <section class="report-grid">
+            <section class="analysis-panel">
+              <div class="panel-head">
+                <h2>7일 흐름</h2>
+                <span id="trendBadge">이번 주</span>
+              </div>
+              <div id="weeklyTrend" class="weekly-trend"></div>
+            </section>
+
+            <section class="analysis-panel">
+              <div class="panel-head">
+                <h2>영양 품질</h2>
+                <span id="qualityBadge">0%</span>
+              </div>
+              <div id="qualityList" class="analysis-list"></div>
+            </section>
+
+            <section class="analysis-panel">
+              <div class="panel-head">
+                <h2>신체 인사이트</h2>
+                <span id="bodyBadge">BMI</span>
+              </div>
+              <div id="bodyInsightList" class="analysis-list"></div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
