@@ -61,6 +61,15 @@ p {
   background: #fbfcf8;
 }
 
+@media (min-width: 1081px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
 .brand,
 .topbar,
 .form-head,
@@ -263,7 +272,7 @@ textarea:focus {
   display: grid;
   gap: 22px;
   align-content: start;
-  padding: 28px;
+  padding: 32px 32px 40px;
 }
 
 .topbar h2 {
@@ -284,9 +293,10 @@ textarea:focus {
   gap: 16px;
   align-items: stretch;
   padding: 20px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: linear-gradient(90deg, rgba(47, 125, 87, 0.08), rgba(55, 120, 166, 0.07), rgba(216, 111, 85, 0.06));
+  box-shadow: var(--shadow);
 }
 
 .hero-score {
@@ -331,7 +341,7 @@ textarea:focus {
 
 .hero-brief {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -357,16 +367,48 @@ textarea:focus {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .metric-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 10px;
   min-height: 142px;
   align-content: center;
   padding: 15px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(249, 251, 252, 0.98)),
+    var(--panel);
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(55, 120, 166, 0.22);
+}
+
+.metric-card:nth-child(1)::before,
+.metric-card:nth-child(5)::before {
+  background: rgba(47, 125, 87, 0.28);
+}
+
+.metric-card:nth-child(2)::before,
+.metric-card:nth-child(6)::before {
+  background: rgba(55, 120, 166, 0.28);
+}
+
+.metric-card:nth-child(3)::before {
+  background: rgba(199, 154, 49, 0.32);
+}
+
+.metric-card:nth-child(4)::before {
+  background: rgba(216, 111, 85, 0.32);
 }
 
 .metric-card strong {
@@ -968,6 +1010,8 @@ textarea:focus {
   }
 
   .sidebar {
+    position: static;
+    height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
