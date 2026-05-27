@@ -40,7 +40,7 @@
             <button class="primary-btn" id="loginBtn" type="submit">로그인</button>
             <button class="ghost-btn" id="registerBtn" type="button">계정 만들기</button>
           </div>
-          <p class="auth-message" id="authMessage">처음이라면 아이디와 8자 이상 패스워드를 입력한 뒤 계정을 만드세요.</p>
+          <p class="auth-message" id="authMessage" aria-live="polite">처음이라면 아이디와 8자 이상 패스워드를 입력한 뒤 계정을 만드세요.</p>
         </form>
         <div class="security-note">
           <strong>보안 안내</strong>
@@ -230,15 +230,15 @@
           </article>
         </section>
 
-        <nav class="tabbar" aria-label="기록 탭">
-          <button class="active" type="button" data-tab="diet">식단</button>
-          <button type="button" data-tab="exercise">운동</button>
-          <button type="button" data-tab="medication">약 기록</button>
-          <button type="button" data-tab="plan">플래너</button>
-          <button type="button" data-tab="report">리포트</button>
+        <nav class="tabbar" role="tablist" aria-label="기록 탭">
+          <button class="active" id="dietTabButton" role="tab" type="button" data-tab="diet" aria-controls="dietTab" aria-selected="true">식단</button>
+          <button id="exerciseTabButton" role="tab" type="button" data-tab="exercise" aria-controls="exerciseTab" aria-selected="false">운동</button>
+          <button id="medicationTabButton" role="tab" type="button" data-tab="medication" aria-controls="medicationTab" aria-selected="false">약 기록</button>
+          <button id="planTabButton" role="tab" type="button" data-tab="plan" aria-controls="planTab" aria-selected="false">플래너</button>
+          <button id="reportTabButton" role="tab" type="button" data-tab="report" aria-controls="reportTab" aria-selected="false">리포트</button>
         </nav>
 
-        <section class="tab-panel" id="dietTab">
+        <section class="tab-panel" id="dietTab" role="tabpanel" aria-labelledby="dietTabButton">
           <section class="next-meal-panel">
             <div class="next-meal-copy">
               <span>Real-time Meal Coach</span>
@@ -356,7 +356,7 @@
           </section>
         </section>
 
-        <section class="tab-panel" id="medicationTab" hidden>
+        <section class="tab-panel" id="medicationTab" role="tabpanel" aria-labelledby="medicationTabButton" hidden>
           <section class="main-grid">
             <form class="entry-form" id="medicationForm">
               <div class="form-head">
@@ -436,7 +436,7 @@
           </section>
         </section>
 
-        <section class="tab-panel" id="exerciseTab" hidden>
+        <section class="tab-panel" id="exerciseTab" role="tabpanel" aria-labelledby="exerciseTabButton" hidden>
           <section class="next-meal-panel exercise-coach-panel">
             <div class="next-meal-copy">
               <span>Training Coach</span>
@@ -540,7 +540,7 @@
           </section>
         </section>
 
-        <section class="tab-panel" id="planTab" hidden>
+        <section class="tab-panel" id="planTab" role="tabpanel" aria-labelledby="planTabButton" hidden>
           <section class="main-grid">
             <form class="entry-form" id="plannerForm">
               <div class="form-head">
@@ -602,7 +602,7 @@
           </section>
         </section>
 
-        <section class="tab-panel" id="reportTab" hidden>
+        <section class="tab-panel" id="reportTab" role="tabpanel" aria-labelledby="reportTabButton" hidden>
           <section class="report-grid">
             <section class="analysis-panel">
               <div class="panel-head">

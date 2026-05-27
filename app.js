@@ -2907,12 +2907,36 @@ function intensityLabel(value) {
 }
 
 function switchTab(tabName) {
-  document.querySelectorAll(".tabbar button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tabName));
+  document.querySelectorAll(".tabbar button").forEach((button) => {
+    const isActive = button.dataset.tab === tabName;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+    button.tabIndex = isActive ? 0 : -1;
+  });
   $("#dietTab").hidden = tabName !== "diet";
   $("#exerciseTab").hidden = tabName !== "exercise";
   $("#medicationTab").hidden = tabName !== "medication";
   $("#planTab").hidden = tabName !== "plan";
   $("#reportTab").hidden = tabName !== "report";
+}
+
+function handleTabKeydown(event) {
+  const buttons = [...document.querySelectorAll(".tabbar button")];
+  const currentIndex = buttons.indexOf(event.currentTarget);
+  if (currentIndex < 0) return;
+  const keyMap = {
+    ArrowRight: currentIndex + 1,
+    ArrowDown: currentIndex + 1,
+    ArrowLeft: currentIndex - 1,
+    ArrowUp: currentIndex - 1,
+    Home: 0,
+    End: buttons.length - 1,
+  };
+  if (!(event.key in keyMap)) return;
+  event.preventDefault();
+  const nextIndex = (keyMap[event.key] + buttons.length) % buttons.length;
+  buttons[nextIndex].focus();
+  switchTab(buttons[nextIndex].dataset.tab);
 }
 
 function setDateOffset(days) {
@@ -3146,7 +3170,10 @@ function init() {
   $("#mealTimeline").addEventListener("click", handleRemoveClick);
   $("#exerciseTimeline").addEventListener("click", handleRemoveClick);
   $("#medicationTimeline").addEventListener("click", handleRemoveClick);
-  document.querySelectorAll(".tabbar button").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.tab)));
+  document.querySelectorAll(".tabbar button").forEach((button) => {
+    button.addEventListener("click", () => switchTab(button.dataset.tab));
+    button.addEventListener("keydown", handleTabKeydown);
+  });
   document.addEventListener("error", handleImageError, true);
   renderMedicationLanguageButtons();
   setInterval(checkDateRollover, 60000);
