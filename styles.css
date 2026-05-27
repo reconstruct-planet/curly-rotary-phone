@@ -1507,3 +1507,308 @@ a.primary-btn {
     transition: none;
   }
 }
+
+/* Structure and spacing polish */
+.app-shell {
+  grid-template-columns: 304px minmax(0, 1fr);
+}
+
+.sidebar {
+  gap: 16px;
+  padding: 20px;
+}
+
+.workspace {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  gap: 24px;
+  padding: 38px 40px 52px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 24px;
+}
+
+.topbar-copy {
+  max-width: 900px;
+}
+
+.product-subtitle {
+  max-width: 720px;
+}
+
+.top-actions {
+  align-self: start;
+  min-width: max-content;
+}
+
+.side-section,
+.entry-form,
+.analysis-panel,
+.next-meal-panel,
+.metric-card {
+  border-color: rgba(17, 24, 39, 0.1);
+}
+
+.side-section {
+  gap: 14px;
+  padding: 15px;
+}
+
+.hero-band {
+  grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+  gap: 22px;
+  padding: 28px;
+}
+
+.hero-score {
+  gap: 20px;
+}
+
+.hero-brief {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.hero-brief div {
+  min-height: 108px;
+  padding: 16px;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric-card:nth-child(1),
+.metric-card:nth-child(2),
+.metric-card:nth-child(3),
+.metric-card:nth-child(4),
+.metric-card:nth-child(5),
+.metric-card:nth-child(6) {
+  transform: none;
+}
+
+.metric-card {
+  min-height: 142px;
+  padding: 18px;
+}
+
+.metric-card:nth-child(1) {
+  grid-column: span 2;
+}
+
+.metric-card:nth-child(2),
+.metric-card:nth-child(3),
+.metric-card:nth-child(4),
+.metric-card:nth-child(5) {
+  grid-column: span 1;
+}
+
+.metric-card:nth-child(6) {
+  grid-column: span 2;
+}
+
+.tabbar {
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 5px;
+  box-shadow: 0 12px 30px rgba(17, 24, 39, 0.05);
+}
+
+.tabbar button {
+  min-height: 38px;
+  border-bottom: 0;
+  border-radius: 999px;
+  padding: 0 16px;
+}
+
+.tabbar button.active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.tab-panel {
+  gap: 24px;
+}
+
+.main-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.75fr);
+  gap: 24px;
+}
+
+.report-grid {
+  grid-template-columns: minmax(380px, 1.2fr) repeat(2, minmax(260px, 0.82fr));
+  gap: 18px;
+}
+
+.entry-form,
+.analysis-panel {
+  gap: 20px;
+  padding: 22px;
+}
+
+.next-meal-panel {
+  grid-template-columns: minmax(260px, 0.62fr) minmax(0, 1.38fr);
+  gap: 22px;
+  padding: 22px;
+}
+
+.next-meal-options {
+  gap: 12px;
+}
+
+.field-row {
+  grid-template-columns: minmax(140px, 0.68fr) minmax(220px, 1.45fr) minmax(110px, 0.56fr);
+  gap: 14px;
+}
+
+.nutrition-row {
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+
+.exercise-row,
+.checkin-row,
+.plan-row,
+.medication-row {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.wide-field {
+  grid-column: span 2;
+}
+
+.photo-note-row {
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.timeline-section {
+  gap: 16px;
+}
+
+.meal-timeline {
+  gap: 18px;
+}
+
+.log-item {
+  grid-template-columns: 88px minmax(0, 1fr) 40px;
+  gap: 16px;
+  min-height: 112px;
+  padding: 12px;
+}
+
+@media (max-width: 1280px) {
+  .workspace {
+    padding: 30px 28px 44px;
+  }
+
+  .hero-band,
+  .next-meal-panel,
+  .main-grid,
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .metric-card:nth-child(1),
+  .metric-card:nth-child(2),
+  .metric-card:nth-child(3),
+  .metric-card:nth-child(4),
+  .metric-card:nth-child(5),
+  .metric-card:nth-child(6) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 1080px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .brand,
+  .date-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .sidebar,
+  .workspace {
+    padding: 16px;
+  }
+
+  .workspace,
+  .tab-panel {
+    gap: 18px;
+  }
+
+  .sidebar,
+  .hero-brief,
+  .metric-grid,
+  .field-row,
+  .nutrition-row,
+  .exercise-row,
+  .checkin-row,
+  .plan-row,
+  .medication-row,
+  .photo-note-row,
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .top-actions,
+  .tabbar {
+    width: 100%;
+  }
+
+  .tabbar {
+    border-radius: 18px;
+  }
+
+  .tabbar button {
+    flex: 0 0 auto;
+  }
+
+  .hero-band,
+  .entry-form,
+  .analysis-panel,
+  .next-meal-panel {
+    padding: 18px;
+  }
+
+  .hero-score {
+    align-items: start;
+  }
+
+  .wide-field {
+    grid-column: auto;
+  }
+
+  .log-item {
+    grid-template-columns: 72px minmax(0, 1fr) 38px;
+    gap: 12px;
+    padding: 10px;
+  }
+}
