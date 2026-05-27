@@ -1812,3 +1812,147 @@ a.primary-btn {
     padding: 10px;
   }
 }
+
+/* Account access and local privacy layer */
+.auth-screen {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  z-index: 2;
+}
+
+.auth-card {
+  display: grid;
+  width: min(100%, 520px);
+  gap: 22px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(35, 122, 87, 0.12), transparent 210px),
+    rgba(255, 255, 255, 0.92);
+  box-shadow: 0 30px 90px rgba(17, 24, 39, 0.14);
+  padding: 28px;
+  backdrop-filter: blur(18px) saturate(118%);
+}
+
+.auth-brand,
+.account-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.auth-brand {
+  justify-content: flex-start;
+}
+
+.auth-brand h1,
+.auth-copy h2 {
+  line-height: 1.05;
+}
+
+.auth-brand p,
+.auth-copy p,
+.auth-message,
+.security-note p,
+.account-panel span {
+  color: var(--muted);
+}
+
+.auth-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-copy span {
+  width: max-content;
+  border: 1px solid rgba(35, 122, 87, 0.18);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.auth-copy h2 {
+  font-size: clamp(30px, 7vw, 46px);
+}
+
+.auth-copy p,
+.security-note p {
+  line-height: 1.55;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.auth-actions .primary-btn,
+.auth-actions .ghost-btn {
+  min-height: 44px;
+}
+
+.auth-message {
+  min-height: 20px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.auth-message.error {
+  color: var(--red);
+  font-weight: 800;
+}
+
+.auth-message.success {
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.security-note,
+.account-panel {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: var(--radius);
+  background: rgba(248, 250, 249, 0.78);
+  padding: 14px;
+}
+
+.security-note {
+  display: grid;
+  gap: 6px;
+}
+
+.account-panel strong {
+  display: block;
+  margin-top: 3px;
+}
+
+.account-panel .ghost-btn {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+@media (max-width: 720px) {
+  .auth-card {
+    padding: 20px;
+  }
+
+  .auth-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .account-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

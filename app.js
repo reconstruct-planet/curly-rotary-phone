@@ -4,6 +4,14 @@ const LAST_MEAL_TYPE_KEY = "ethan-health-last-meal-type-v1";
 const FOOD_TRANSLATION_KEY = "ethan-health-food-translations-v1";
 const LEGACY_KEYS = ["nutri-day-records-v2", "nutri-day-records-v1"];
 const LEGACY_SETTING_KEYS = ["nutri-day-settings-v2", "nutri-day-settings-v1"];
+const AUTH_USERS_KEY = "ethan-health-users-v1";
+const AUTH_SESSION_KEY = "ethan-health-session-v1";
+const AUTH_MIGRATION_KEY = "ethan-health-user-migration-v1";
+const AUTH_ATTEMPTS_KEY = "ethan-health-login-attempts-v1";
+const AUTH_ITERATIONS = 210000;
+const SESSION_TTL_MS = 1000 * 60 * 60 * 8;
+const LOGIN_LOCK_MS = 1000 * 60 * 5;
+const MAX_LOGIN_ATTEMPTS = 5;
 
 const defaultSettings = {
   calories: 2100,
@@ -351,12 +359,12 @@ let medicationLookupTimer = 0;
 let medicationLookupToken = 0;
 let medicationTranslationCache = load("ethan-health-med-translations-v1", {});
 
-let records = loadFirst(STORAGE_KEY, LEGACY_KEYS, {});
-let settings = { ...defaultSettings, ...loadFirst(SETTINGS_KEY, LEGACY_SETTING_KEYS, {}) };
-settings.mealTargets = { ...defaultSettings.mealTargets, ...(settings.mealTargets || {}) };
-settings.favorites = Array.isArray(settings.favorites) ? settings.favorites : [];
-let lastMealTypeState = load(LAST_MEAL_TYPE_KEY, { date: "", mealType: "아침" });
+let currentUser = null;
+let records = {};
+let settings = { ...defaultSettings };
+let lastMealTypeState = { date: "", mealType: "아침" };
 let foodTranslationCache = load(FOOD_TRANSLATION_KEY, {});
+let appStarted = false;
 
 let currentDate = toDateInputValue(new Date());
 let lastSeenToday = currentDate;
@@ -391,9 +399,43 @@ function loadFirst(key, legacyKeys, fallback) {
   return fallback;
 }
 
+function userStorageKey(key) {
+  if (!currentUser?.id) return key;
+  return `ethan-health-user-${currentUser.id}-${key}`;
+}
+
+function loadUserData() {
+  records = loadFirst(userStorageKey(STORAGE_KEY), [], {});
+  settings = { ...defaultSettings, ...loadFirst(userStorageKey(SETTINGS_KEY), [], {}) };
+  settings.mealTargets = { ...defaultSettings.mealTargets, ...(settings.mealTargets || {}) };
+  settings.favorites = Array.isArray(settings.favorites) ? settings.favorites : [];
+  lastMealTypeState = load(userStorageKey(LAST_MEAL_TYPE_KEY), { date: "", mealType: "아침" });
+  migrateLegacyDataToUser();
+}
+
+function migrateLegacyDataToUser() {
+  if (!currentUser?.id) return;
+  const migrated = load(AUTH_MIGRATION_KEY, {});
+  if (migrated.claimedBy || migrated[currentUser.id]) return;
+  const legacyRecords = loadFirst(STORAGE_KEY, LEGACY_KEYS, null);
+  const legacySettings = loadFirst(SETTINGS_KEY, LEGACY_SETTING_KEYS, null);
+  if (legacyRecords && !Object.keys(records).length) records = legacyRecords;
+  if (legacySettings) {
+    settings = { ...defaultSettings, ...settings, ...legacySettings };
+    settings.mealTargets = { ...defaultSettings.mealTargets, ...(settings.mealTargets || {}) };
+    settings.favorites = Array.isArray(settings.favorites) ? settings.favorites : [];
+  }
+  migrated[currentUser.id] = true;
+  migrated.claimedBy = currentUser.id;
+  localStorage.setItem(AUTH_MIGRATION_KEY, JSON.stringify(migrated));
+  save();
+}
+
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  if (!currentUser?.id) return;
+  localStorage.setItem(userStorageKey(STORAGE_KEY), JSON.stringify(records));
+  localStorage.setItem(userStorageKey(SETTINGS_KEY), JSON.stringify(settings));
+  localStorage.setItem(userStorageKey(LAST_MEAL_TYPE_KEY), JSON.stringify(lastMealTypeState));
 }
 
 function toDateInputValue(date) {
@@ -434,6 +476,248 @@ function escapeHtml(value) {
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function normalizeUsername(value) {
+  return normalize(value).replace(/\s+/g, "");
+}
+
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+}
+
+async function passwordHash(password, saltBase64) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: base64ToBytes(saltBase64),
+      iterations: AUTH_ITERATIONS,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    256,
+  );
+  return bytesToBase64(new Uint8Array(bits));
+}
+
+function loadUsers() {
+  const users = load(AUTH_USERS_KEY, {});
+  return users && typeof users === "object" ? users : {};
+}
+
+function saveUsers(users) {
+  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+}
+
+function constantTimeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+function loginAttemptState(userId) {
+  const attempts = load(AUTH_ATTEMPTS_KEY, {});
+  const entry = attempts[userId] || { count: 0, lockedUntil: 0 };
+  return { attempts, entry };
+}
+
+function isLoginLocked(userId) {
+  const { entry } = loginAttemptState(userId);
+  return number(entry.lockedUntil) > Date.now();
+}
+
+function registerFailedLogin(userId) {
+  const { attempts, entry } = loginAttemptState(userId);
+  const count = number(entry.count) + 1;
+  attempts[userId] = {
+    count,
+    lockedUntil: count >= MAX_LOGIN_ATTEMPTS ? Date.now() + LOGIN_LOCK_MS : 0,
+  };
+  localStorage.setItem(AUTH_ATTEMPTS_KEY, JSON.stringify(attempts));
+  return attempts[userId];
+}
+
+function clearLoginAttempts(userId) {
+  const attempts = load(AUTH_ATTEMPTS_KEY, {});
+  delete attempts[userId];
+  localStorage.setItem(AUTH_ATTEMPTS_KEY, JSON.stringify(attempts));
+}
+
+function setAuthMessage(message, type = "") {
+  const node = $("#authMessage");
+  if (!node) return;
+  node.textContent = message;
+  node.classList.toggle("error", type === "error");
+  node.classList.toggle("success", type === "success");
+}
+
+function validateCredentials(username, password) {
+  const id = normalizeUsername(username);
+  if (!/^[a-z0-9._-]{3,32}$/i.test(id)) return "아이디는 영문, 숫자, 점, 밑줄, 하이픈 조합 3-32자로 입력하세요.";
+  if (password.length < 8) return "패스워드는 8자 이상이어야 합니다.";
+  return "";
+}
+
+function persistSession(user) {
+  sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+    userId: user.id,
+    expiresAt: Date.now() + SESSION_TTL_MS,
+  }));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+}
+
+function updateAccountChrome() {
+  $("#accountName").textContent = currentUser?.username || "-";
+}
+
+function startAuthenticatedApp(user) {
+  currentUser = user;
+  persistSession(user);
+  loadUserData();
+  currentDate = toDateInputValue(new Date());
+  lastSeenToday = currentDate;
+  $("#authScreen").hidden = true;
+  $("#appShell").hidden = false;
+  updateAccountChrome();
+  if (!appStarted) {
+    init();
+    appStarted = true;
+    return;
+  }
+  resetMealForm();
+  renderMedicationLookup(null, [], "한국어/영문 이름을 입력하면 성분/효과/주의사항을 검색합니다.");
+  renderMedicationLanguageButtons();
+  switchTab("diet");
+  render();
+}
+
+async function registerAccount() {
+  const username = $("#authUsername").value.trim();
+  const password = $("#authPassword").value;
+  const issue = validateCredentials(username, password);
+  if (issue) {
+    setAuthMessage(issue, "error");
+    return;
+  }
+  const users = loadUsers();
+  const id = normalizeUsername(username);
+  if (users[id]) {
+    setAuthMessage("이미 존재하는 아이디입니다. 로그인해 주세요.", "error");
+    return;
+  }
+  setAuthMessage("계정을 안전하게 만드는 중입니다...");
+  const salt = new Uint8Array(16);
+  crypto.getRandomValues(salt);
+  const saltBase64 = bytesToBase64(salt);
+  users[id] = {
+    id,
+    username,
+    salt: saltBase64,
+    hash: await passwordHash(password, saltBase64),
+    iterations: AUTH_ITERATIONS,
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+  };
+  saveUsers(users);
+  setAuthMessage("계정이 생성되었습니다.", "success");
+  startAuthenticatedApp(users[id]);
+}
+
+async function loginAccount(event) {
+  event?.preventDefault();
+  const username = $("#authUsername").value.trim();
+  const password = $("#authPassword").value;
+  const issue = validateCredentials(username, password);
+  if (issue) {
+    setAuthMessage(issue, "error");
+    return;
+  }
+  const users = loadUsers();
+  const id = normalizeUsername(username);
+  if (isLoginLocked(id)) {
+    setAuthMessage("로그인 시도가 많습니다. 5분 후 다시 시도하세요.", "error");
+    return;
+  }
+  const user = users[id];
+  if (!user) {
+    registerFailedLogin(id);
+    setAuthMessage("아이디 또는 패스워드가 올바르지 않습니다.", "error");
+    return;
+  }
+  setAuthMessage("로그인 확인 중입니다...");
+  const hash = await passwordHash(password, user.salt);
+  if (!constantTimeEqual(hash, user.hash)) {
+    const attempt = registerFailedLogin(id);
+    if (attempt.lockedUntil) {
+      setAuthMessage("로그인 시도가 많습니다. 5분 후 다시 시도하세요.", "error");
+      return;
+    }
+    setAuthMessage("아이디 또는 패스워드가 올바르지 않습니다.", "error");
+    return;
+  }
+  clearLoginAttempts(id);
+  user.lastLoginAt = new Date().toISOString();
+  users[id] = user;
+  saveUsers(users);
+  startAuthenticatedApp(user);
+}
+
+function logoutAccount() {
+  clearSession();
+  currentUser = null;
+  records = {};
+  settings = { ...defaultSettings };
+  lastMealTypeState = { date: "", mealType: "아침" };
+  selectedPhoto = "";
+  autoPhoto = "";
+  activeFoodBase = null;
+  activeFoodSource = "";
+  $("#appShell").hidden = true;
+  $("#authScreen").hidden = false;
+  $("#authPassword").value = "";
+  setAuthMessage("로그아웃되었습니다.", "success");
+}
+
+function restoreSession() {
+  const session = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(AUTH_SESSION_KEY));
+    } catch {
+      return null;
+    }
+  })();
+  if (!session?.userId || number(session.expiresAt) < Date.now()) {
+    clearSession();
+    return false;
+  }
+  const user = loadUsers()[session.userId];
+  if (!user) {
+    clearSession();
+    return false;
+  }
+  startAuthenticatedApp(user);
+  return true;
+}
+
+function initAuth() {
+  $("#authForm").addEventListener("submit", loginAccount);
+  $("#registerBtn").addEventListener("click", registerAccount);
+  if (!restoreSession()) {
+    $("#authScreen").hidden = false;
+    $("#appShell").hidden = true;
+  }
 }
 
 function uniqueValues(values) {
@@ -1257,7 +1541,7 @@ function preferredMealTypeForCurrentDate() {
 
 function rememberMealType(mealType) {
   lastMealTypeState = { date: currentDate, mealType: mealOrder.includes(mealType) ? mealType : "아침" };
-  localStorage.setItem(LAST_MEAL_TYPE_KEY, JSON.stringify(lastMealTypeState));
+  if (currentUser?.id) localStorage.setItem(userStorageKey(LAST_MEAL_TYPE_KEY), JSON.stringify(lastMealTypeState));
 }
 
 async function translateFoodQueryToEnglish(query) {
@@ -2591,6 +2875,7 @@ function checkDateRollover() {
 }
 
 function init() {
+  $("#logoutBtn").addEventListener("click", logoutAccount);
   $("#foodOptions").innerHTML = foodDb.map((item) => `<option value="${escapeHtml(item.name)}"></option>`).join("");
   $("#exerciseOptions").innerHTML = Object.keys(exerciseDb).map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
 
@@ -2825,4 +3110,4 @@ function handleImageError(event) {
   }
 }
 
-init();
+initAuth();

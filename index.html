@@ -3,11 +3,52 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.mymemory.translated.net https://translate.googleapis.com https://api.fda.gov https://rxnav.nlm.nih.gov https://pubchem.ncbi.nlm.nih.gov https://www.wikidata.org https://world.openfoodfacts.org https://api.nal.usda.gov https://www.themealdb.com https://commons.wikimedia.org; base-uri 'self'; form-action 'self'; object-src 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>Ethan's Health Analysis</title>
-    <link rel="stylesheet" href="./styles.css?v=spacing-polish" />
+    <link rel="stylesheet" href="./styles.css?v=auth-v1" />
   </head>
   <body>
-    <div class="app-shell">
+    <section class="auth-screen" id="authScreen">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <div class="brand-mark">E</div>
+          <div>
+            <h1>Ethan's Health Analysis</h1>
+            <p>개인 건강 기록 보관함</p>
+          </div>
+        </div>
+        <div class="auth-copy">
+          <span>Secure profile</span>
+          <h2>로그인 후 나만의 기록을 확인하세요</h2>
+          <p>식단, 운동, 약, 신체 목표를 계정별로 분리해서 저장합니다.</p>
+        </div>
+        <form class="auth-form" id="authForm">
+          <label>
+            <span>아이디</span>
+            <input id="authUsername" type="text" autocomplete="username" minlength="3" maxlength="32" required />
+          </label>
+          <label>
+            <span>패스워드</span>
+            <input id="authPassword" type="password" autocomplete="current-password" minlength="8" required />
+          </label>
+          <div class="auth-actions">
+            <button class="primary-btn" id="loginBtn" type="submit">로그인</button>
+            <button class="ghost-btn" id="registerBtn" type="button">계정 만들기</button>
+          </div>
+          <p class="auth-message" id="authMessage">처음이라면 아이디와 8자 이상 패스워드를 입력한 뒤 계정을 만드세요.</p>
+        </form>
+        <div class="security-note">
+          <strong>보안 안내</strong>
+          <p>현재 GitHub Pages 정적 버전은 이 기기의 브라우저 저장소에 계정별로 분리 저장합니다. 여러 기기 동기화와 서버급 권한 관리는 백엔드 연결이 필요합니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">E</div>
@@ -16,6 +57,14 @@
             <p>식단 · 운동 · 신체 리포트</p>
           </div>
         </div>
+
+        <section class="account-panel">
+          <div>
+            <span>로그인 계정</span>
+            <strong id="accountName">-</strong>
+          </div>
+          <button class="ghost-btn" id="logoutBtn" type="button">로그아웃</button>
+        </section>
 
         <nav class="date-panel" aria-label="날짜 선택">
           <button class="icon-btn" id="prevDay" type="button" aria-label="이전 날짜">‹</button>
