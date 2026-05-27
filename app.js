@@ -374,6 +374,7 @@ let activeFoodBase = null;
 let activeFoodSource = "";
 let lookupToken = 0;
 let lookupTimer = 0;
+let toastTimer = 0;
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -560,6 +561,42 @@ function setAuthMessage(message, type = "") {
   node.classList.toggle("success", type === "success");
 }
 
+function setAuthBusy(isBusy) {
+  const form = $("#authForm");
+  form.classList.toggle("is-busy", isBusy);
+  form.setAttribute("aria-busy", String(isBusy));
+  $("#loginBtn").disabled = isBusy;
+  $("#registerBtn").disabled = isBusy;
+}
+
+function notify(message, type = "success") {
+  const toast = $("#toast");
+  if (!toast) return;
+  clearTimeout(toastTimer);
+  toast.textContent = message;
+  toast.classList.toggle("success", type === "success");
+  toast.classList.toggle("error", type === "error");
+  toast.hidden = false;
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+  }, 3400);
+}
+
+function askConfirm(message, title = "확인") {
+  const dialog = $("#confirmDialog");
+  if (!dialog || typeof dialog.showModal !== "function") return Promise.resolve(confirm(message));
+  $("#confirmTitle").textContent = title;
+  $("#confirmMessage").textContent = message;
+  return new Promise((resolve) => {
+    const handleClose = () => {
+      dialog.removeEventListener("close", handleClose);
+      resolve(dialog.returnValue === "ok");
+    };
+    dialog.addEventListener("close", handleClose);
+    dialog.showModal();
+  });
+}
+
 function validateCredentials(username, password) {
   const id = normalizeUsername(username);
   if (!/^[a-z0-9._-]{3,32}$/i.test(id)) return "아이디는 영문, 숫자, 점, 밑줄, 하이픈 조합 3-32자로 입력하세요.";
@@ -618,21 +655,29 @@ async function registerAccount() {
     return;
   }
   setAuthMessage("계정을 안전하게 만드는 중입니다...");
-  const salt = new Uint8Array(16);
-  crypto.getRandomValues(salt);
-  const saltBase64 = bytesToBase64(salt);
-  users[id] = {
-    id,
-    username,
-    salt: saltBase64,
-    hash: await passwordHash(password, saltBase64),
-    iterations: AUTH_ITERATIONS,
-    createdAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString(),
-  };
-  saveUsers(users);
-  setAuthMessage("계정이 생성되었습니다.", "success");
-  startAuthenticatedApp(users[id]);
+  setAuthBusy(true);
+  try {
+    const salt = new Uint8Array(16);
+    crypto.getRandomValues(salt);
+    const saltBase64 = bytesToBase64(salt);
+    users[id] = {
+      id,
+      username,
+      salt: saltBase64,
+      hash: await passwordHash(password, saltBase64),
+      iterations: AUTH_ITERATIONS,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+    saveUsers(users);
+    setAuthMessage("계정이 생성되었습니다.", "success");
+    startAuthenticatedApp(users[id]);
+    notify(`${username} 계정으로 시작합니다.`);
+  } catch {
+    setAuthMessage("계정을 만들지 못했습니다. 브라우저 보안 저장소를 확인해 주세요.", "error");
+  } finally {
+    setAuthBusy(false);
+  }
 }
 
 async function loginAccount(event) {
@@ -657,21 +702,29 @@ async function loginAccount(event) {
     return;
   }
   setAuthMessage("로그인 확인 중입니다...");
-  const hash = await passwordHash(password, user.salt);
-  if (!constantTimeEqual(hash, user.hash)) {
-    const attempt = registerFailedLogin(id);
-    if (attempt.lockedUntil) {
-      setAuthMessage("로그인 시도가 많습니다. 5분 후 다시 시도하세요.", "error");
+  setAuthBusy(true);
+  try {
+    const hash = await passwordHash(password, user.salt);
+    if (!constantTimeEqual(hash, user.hash)) {
+      const attempt = registerFailedLogin(id);
+      if (attempt.lockedUntil) {
+        setAuthMessage("로그인 시도가 많습니다. 5분 후 다시 시도하세요.", "error");
+        return;
+      }
+      setAuthMessage("아이디 또는 패스워드가 올바르지 않습니다.", "error");
       return;
     }
-    setAuthMessage("아이디 또는 패스워드가 올바르지 않습니다.", "error");
-    return;
+    clearLoginAttempts(id);
+    user.lastLoginAt = new Date().toISOString();
+    users[id] = user;
+    saveUsers(users);
+    startAuthenticatedApp(user);
+    notify(`${user.username} 계정으로 로그인했습니다.`);
+  } catch {
+    setAuthMessage("로그인 처리 중 문제가 발생했습니다. 다시 시도해 주세요.", "error");
+  } finally {
+    setAuthBusy(false);
   }
-  clearLoginAttempts(id);
-  user.lastLoginAt = new Date().toISOString();
-  users[id] = user;
-  saveUsers(users);
-  startAuthenticatedApp(user);
 }
 
 function logoutAccount() {
@@ -688,6 +741,7 @@ function logoutAccount() {
   $("#authScreen").hidden = false;
   $("#authPassword").value = "";
   setAuthMessage("로그아웃되었습니다.", "success");
+  notify("로그아웃되었습니다.");
 }
 
 function restoreSession() {
@@ -2724,6 +2778,7 @@ function addMeal(overrides = {}) {
   resetMealForm();
   save();
   render();
+  notify(`${meal.name} 식단을 저장했습니다.`);
 }
 
 function qualityFromForm() {
@@ -2771,6 +2826,7 @@ function addFavorite() {
   save();
   render();
   $("#lookupStatus").textContent = "즐겨찾기에 저장됨";
+  notify(`${favorite.name} 즐겨찾기에 저장했습니다.`);
 }
 
 function addExercise() {
@@ -2794,6 +2850,7 @@ function addExercise() {
   $("#exerciseStatus").textContent = "운동 선택 대기";
   save();
   render();
+  notify(`${name} 운동을 저장했습니다.`);
 }
 
 function addMedication() {
@@ -2821,6 +2878,7 @@ function addMedication() {
   renderMedicationLookup(null, [], "한국어/영문 이름을 입력하면 성분/효과/주의사항을 검색합니다.");
   save();
   render();
+  notify(`${name} 복용 기록을 저장했습니다.`);
 }
 
 function getExerciseBase(name) {
@@ -2936,6 +2994,7 @@ function init() {
       $("#barcodeStatus").textContent = "적용됨";
     } catch {
       $("#barcodeStatus").textContent = "결과 없음";
+      notify("바코드 결과를 찾지 못했습니다. 음식명으로 검색해 주세요.", "error");
     }
   });
 
@@ -3000,6 +3059,7 @@ function init() {
     };
     save();
     render();
+    notify("체크인을 저장했습니다.");
   });
 
   $("#plannerForm").addEventListener("submit", (event) => {
@@ -3014,6 +3074,7 @@ function init() {
     settings.fastingHours = number($("#fastingHours").value) || 14;
     save();
     render();
+    notify("목표 플랜을 저장했습니다.");
   });
   $("#generateTargetBtn").addEventListener("click", applyRecommendedTargets);
 
@@ -3059,20 +3120,27 @@ function init() {
     save();
     render();
   });
-  $("#clearDayBtn").addEventListener("click", () => {
-    if (!confirm(`${currentDate} 기록을 삭제할까요?`)) return;
+  $("#clearDayBtn").addEventListener("click", async () => {
+    const confirmed = await askConfirm(`${currentDate} 기록을 삭제할까요? 이 날짜의 식단, 운동, 약 기록이 모두 삭제됩니다.`, "오늘 기록 삭제");
+    if (!confirmed) return;
     delete records[currentDate];
     save();
     render();
+    notify(`${currentDate} 기록을 삭제했습니다.`);
   });
   $("#exportBtn").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({ settings, records }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `nutri-day-${currentDate}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = new Blob([JSON.stringify({ user: currentUser?.username, exportedAt: new Date().toISOString(), settings, records }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `ethan-health-${currentUser?.id || "export"}-${currentDate}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      notify("내보내기 파일을 준비했습니다.");
+    } catch {
+      notify("내보내기를 완료하지 못했습니다.", "error");
+    }
   });
 
   $("#mealTimeline").addEventListener("click", handleRemoveClick);

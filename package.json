@@ -1,0 +1,10 @@
+{
+  "name": "ethans-health-analysis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "node --check app.js",
+    "test": "node --check app.js"
+  }
+}
